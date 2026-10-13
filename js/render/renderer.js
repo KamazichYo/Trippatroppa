@@ -221,7 +221,7 @@ export class Renderer {
       for (const ic of icons) {
         if (!blink && ic.kind !== 'fire') continue;
         const img = statusIcon(ic.kind);
-        const s = Math.max(1, Math.round(z * 1.5));
+        const s = Math.max(1, Math.round(z));
         ctx.drawImage(img, Math.round(ic.x - img.width * s / 2), Math.round(ic.y - img.height * s), img.width * s, img.height * s);
       }
     }
@@ -368,7 +368,7 @@ export class Renderer {
       if (b.road < 0 && def.kind === 'zone') kind = 'road';
       else if (n.power > 0 && !h.power) kind = 'power';
       else if (n.water > 0 && !h.water) kind = 'water';
-      else if (n.heat > 0.5 && !h.heat) kind = 'heat';
+      else if (n.heat > 0.5 && !h.heat && (n.season ?? 1) >= 0.5) kind = 'heat';
       else if (n.gas > 0 && !h.gas) kind = 'gas';
       else if (n.sewage > 0 && !h.sewage) kind = 'sewage';
       else if (n.garbage > 0 && !h.garbage) kind = 'garbage';

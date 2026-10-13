@@ -9,6 +9,7 @@ import { Citizens } from './citizens.js';
 import { fireStep, tornadoStep } from './disasters.js';
 import { FLAVOR_NEWS, TOWN_NAMES } from '../data/names.js';
 import { pick } from '../engine/util.js';
+import { advise } from './advisor.js';
 
 export const SPEEDS = [0, 4, 12, 32, 120];
 export const MONTHS = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
@@ -52,6 +53,7 @@ export class Game {
     this.citizens = new Citizens(this);
     this.lastHour = Math.floor(this.time / 60);
     this.lastDay = Math.floor(this.time / 1440);
+    this.news.push({ t: this.time, text: `${this.cityName}, 1990 год. Перестройка закончилась, начинается новая жизнь. Жители ждут, когда вы проведёте дорогу от трассы.`, type: 'event' });
     this.world.recomputeRoads();
     updateNetworks(this);
     updateMaps(this);
@@ -278,6 +280,7 @@ export class Game {
       if (s[k].use > s[k].prod * 1.02 && s[k].use > 5) this.news.push({ t: this.time, text: `Не хватает ${name}: нужно ${Math.round(s[k].use)}, есть ${Math.round(s[k].prod)}.`, type: 'warn' });
     }
     if (this.money < 0) this.news.push({ t: this.time, text: 'Казна пуста! Возьмите кредит или поднимите налоги.', type: 'bad' });
+    advise(this);
     for (const b of w.buildings.values()) b.visitorsMonth = 0;
     this.history.push({ t: this.time, y: this.year(), m: this.month(), pop: this.stats.pop, money: Math.round(this.money), inc: Math.round(bud.totalInc), exp: Math.round(bud.totalExp), happy: this.stats.happiness, unemp: this.stats.unemployment, R: this.demand.R, C: this.demand.C, I: this.demand.I, jobs: this.stats.jobs });
     if (this.history.length > 360) this.history.shift();

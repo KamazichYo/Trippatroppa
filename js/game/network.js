@@ -11,6 +11,7 @@ export function computeNeeds(b, month, rank = 9) {
   const need = { power: 0, water: 0, gas: 0, heat: 0, sewage: 0, garbage: 0 };
   if (b.built < 1 || b.abandoned) return need;
   const hs = HEAT_SEASON[month];
+  need.season = hs;
   if (def.kind === 'zone') {
     const u = USE[def.zone + def.dens];
     const occ = Math.max(b.occ, def.cap * 0.25);

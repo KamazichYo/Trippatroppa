@@ -81,7 +81,11 @@ export class UI {
     if (g.news.length !== this.lastNews) {
       const fresh = g.news.slice(this.lastNews);
       this.lastNews = g.news.length;
-      for (const n of fresh) if (n.big || n.type === 'bad') this.toast(n.text, n.type === 'bad');
+      this.seenTips = this.seenTips || new Set();
+      for (const n of fresh) {
+        if (n.big || n.type === 'bad') this.toast(n.text, n.type === 'bad');
+        else if (n.type === 'tip' && !this.seenTips.has(n.key)) { this.seenTips.add(n.key); this.toast(n.text); }
+      }
       const last = g.news.slice(-6).map((n) => n.text).join('   •   ');
       $('#tickerText').textContent = last;
     }

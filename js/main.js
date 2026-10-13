@@ -56,7 +56,7 @@ async function main() {
   };
   ui.onLoad = (json) => setGame(Game.deserialize(json));
   ui.onNew = (opts) => {
-    const g = new Game({ size: opts.size, water: opts.water, forest: opts.forest });
+    const g = new Game({ size: opts.size, water: opts.water, forest: opts.forest, seed: opts.seed });
     setGame(g);
     if (opts.demo) ui.demoVillage();
     ui.toast(`Основан новый населённый пункт: ${g.cityName}`);

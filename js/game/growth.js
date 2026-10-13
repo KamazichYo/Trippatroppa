@@ -13,7 +13,7 @@ export function utilFactor(b, def) {
   const n = b.need, h = b.has;
   if (n.power > 0 && !h.power) f *= def.zone === 'A' ? 0.6 : def.zone === 'R' && def.dens === 1 ? 0.5 : 0.15;
   if (n.water > 0 && !h.water) f *= def.zone === 'R' && def.dens === 1 ? 0.75 : 0.5;
-  if (n.heat > 0 && !h.heat) f *= 0.7;
+  if (n.heat > 0 && !h.heat) f *= (n.season ?? 1) >= 0.5 ? 0.7 : 0.95;
   if (n.gas > 0 && !h.gas) f *= 0.88;
   if (n.sewage > 0 && !h.sewage) f *= 0.9;
   if (n.garbage > 0 && !h.garbage) f *= 0.9;
@@ -30,7 +30,7 @@ export function computeHappiness(g, b) {
   h -= (1 - util) * 0.7;
   if (b.need.power > 0 && !b.has.power) reasons.push('нет электричества');
   if (b.need.water > 0 && !b.has.water) reasons.push('нет воды');
-  if (b.need.heat > 0 && !b.has.heat) reasons.push('холодно — нет отопления');
+  if (b.need.heat > 0 && !b.has.heat) reasons.push((b.need.season ?? 1) >= 0.5 ? 'холодно — нет отопления' : 'нет горячей воды (котельная)');
   if (b.need.gas > 0 && !b.has.gas) reasons.push('нет газа');
   if (b.need.sewage > 0 && !b.has.sewage) reasons.push('нет канализации');
   if (b.need.garbage > 0 && !b.has.garbage) reasons.push('не вывозят мусор');

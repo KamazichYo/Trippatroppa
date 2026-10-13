@@ -92,7 +92,8 @@ tr.click:hover { background: var(--panel2); cursor: pointer; }
 .tabs { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
 .news-item { padding: 4px 0; border-bottom: 1px dotted #2c3850; font-size: 13px; }
 .news-item .d { color: var(--dim); font-size: 11px; margin-right: 6px; }
-.news-item.bad { color: #ffb0a8; } .news-item.good { color: #b0f0b8; } .news-item.event { color: var(--accent); } .news-item.warn { color: #ffd8a0; }
+.news-item.bad { color: #ffb0a8; } .news-item.good { color: #b0f0b8; } .news-item.event { color: var(--accent); } .news-item.tip { color: #a8d8ff; }
+.news-item.warn { color: #ffd8a0; }
 .layer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
 
 /* лента новостей */
