@@ -67,6 +67,7 @@ export class Input {
     if (e.target !== this.cv && !this.drag) { this.ui.tooltip(null); return; }
     const t = this.tileFromEvent(e);
     this.hover = t;
+    this.r.hover = this.tool.type === 'inspect' && e.target === this.cv ? t : null;
     if (this.drag) {
       if (Math.abs(e.clientX - this.drag.sx) + Math.abs(e.clientY - this.drag.sy) > 6) this.drag.moved = true;
       if (this.drag.pan) {

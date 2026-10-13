@@ -71,7 +71,7 @@ export function drawTree(pc, x, y, type, sc = 1, seed = 0, autumn = false) {
 }
 
 // Готовые спрайты «лесных» тайлов: несколько деревьев в тайле
-export function forestTile(density, variant) {
+export function forestTile(density, variant, autumn = false) {
   const H = 34;
   const pc = new PC(64, 32 + H, 32, H);
   const rng = mulberry32(variant * 131 + density * 17);
@@ -82,7 +82,8 @@ export function forestTile(density, variant) {
   const types = ['pine', 'pine', 'oak', 'birch', 'poplar', 'pine'];
   for (const [x, y] of pts) {
     const t = types[Math.floor(rng() * types.length)];
-    drawTree(pc, x, y, t, 0.75 + rng() * 0.35, Math.floor(rng() * 1000));
+    const sc = 0.75 + rng() * 0.35, sd = Math.floor(rng() * 1000);
+    drawTree(pc, x, y, t, sc, sd, autumn && t !== 'pine' && (sd % 5 !== 0));
   }
   return pc;
 }

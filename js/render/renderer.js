@@ -74,6 +74,7 @@ export class Renderer {
     this.genBudget = 6;
     const night = g.darkness();
     const winter = g.isWinter();
+    const mo = g.month(); const autumn = mo >= 8 && mo <= 10;
     const ug = this.underground;
     ctx.imageSmoothingEnabled = false;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -180,7 +181,7 @@ export class Renderer {
       }
       // деревья
       if (w.tree[i] && w.bld[i] < 0 && !w.road[i]) {
-        const e = TT.forest(w.tree[i], w.var[i] & 7);
+        const e = TT.forest(w.tree[i], w.var[i] & 7, autumn);
         this.blit(e, X - 32, Y - e.ay, S, T, z, night, winter);
       }
       // здание (рисуем в передней клетке)
@@ -228,6 +229,13 @@ export class Renderer {
     // предпросмотр инструмента
     if (this.preview) this.drawPreview(this.preview, S, T, z, night, winter);
     if (this.selected) this.drawSelection(this.selected, S, T, z);
+    if (this.hover && !this.preview && w.inb(this.hover[0], this.hover[1])) {
+      const [hx, hy] = this.hover;
+      const hb = w.buildingAt(hx, hy);
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1;
+      if (hb) { this.drawSelection({ b: hb }, S, T, z, 'rgba(255,255,255,0.6)'); }
+      else this.diamond(S((hx - hy) * 32), T((hx + hy) * 16), z, false);
+    }
     // погода и сумерки
     this.drawWeather(dtReal, winter, night);
     if (night > 0.05 && night < 0.95) {
@@ -540,11 +548,11 @@ export class Renderer {
       ctx.globalAlpha = 1;
     }
   }
-  drawSelection(sel, S, T, z) {
+  drawSelection(sel, S, T, z, color = '#ffe040') {
     const ctx = this.ctx;
     if (sel.b) {
       const b = sel.b;
-      ctx.strokeStyle = '#ffe040'; ctx.lineWidth = 2;
+      ctx.strokeStyle = color; ctx.lineWidth = 2;
       const s = b.s;
       const X = (b.x - b.y) * 32, Y = (b.x + b.y) * 16;
       ctx.beginPath(); ctx.moveTo(S(X), T(Y)); ctx.lineTo(S(X + 32 * s), T(Y + 16 * s)); ctx.lineTo(S(X), T(Y + 32 * s)); ctx.lineTo(S(X - 32 * s), T(Y + 16 * s)); ctx.closePath(); ctx.stroke();

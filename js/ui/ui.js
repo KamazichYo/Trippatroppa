@@ -277,7 +277,7 @@ export class UI {
     else { this.info = { type: 't', x, y }; this.r.selected = null; }
     this.renderInfo();
   }
-  closeInfo() { this.info = null; this.r.selected = null; $('#info').classList.add('hidden'); }
+  closeInfo() { this.info = null; this.r.selected = null; $('#info').classList.add('hidden'); $('#info')._html = null; }
 
   renderInfo() {
     const el = $('#info'), g = this.g, w = g.world;
@@ -293,6 +293,8 @@ export class UI {
       if (!c) { this.closeInfo(); return; }
       html += this.citizenHtml(c);
     } else html += this.tileHtml(inf.x, inf.y);
+    if (el._html === html && !el.classList.contains('hidden')) return; // без изменений — не трогаем DOM, чтобы не терять клики
+    el._html = html;
     el.innerHTML = html;
     el.classList.remove('hidden');
     $('#infoClose').onclick = () => this.closeInfo();
@@ -403,7 +405,7 @@ export class UI {
     $('#panel').classList.remove('hidden');
     this.renderPanel();
   }
-  closePanel() { this.panel = null; $('#panel').classList.add('hidden'); }
+  closePanel() { this.panel = null; $('#panel').classList.add('hidden'); $('#panelBody')._html = null; }
   renderPanel() {
     const fn = this['panel_' + this.panel];
     if (!fn) return;
@@ -412,6 +414,8 @@ export class UI {
     const [title, html, after, live] = fn.call(this);
     $('#panelTitle').textContent = title;
     const body = $('#panelBody');
+    if (body._html === html && this._panelName === this.panel) return;
+    body._html = html; this._panelName = this.panel;
     const st = body.scrollTop;
     body.innerHTML = html;
     body.scrollTop = st;

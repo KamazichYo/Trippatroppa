@@ -78,10 +78,10 @@ export function waterTile(frame, mask, deep = false) {
 }
 
 // ---------- лес ----------
-export function forest(density, variant) {
-  const key = 'f' + density + '_' + variant;
+export function forest(density, variant, autumn = false) {
+  const key = 'f' + density + '_' + variant + (autumn ? 'a' : '');
   let e = cache.get(key); if (e) return e;
-  const pc = forestTile(density, variant);
+  const pc = forestTile(density, variant, autumn);
   return finish(key, pc);
 }
 
@@ -182,7 +182,7 @@ export function zoneTile(color, dens) {
     if (dens >= 3 && edge > 4 && edge < 4.8 && (fl((u + v) / 2) & 1)) return cmix(color, 0xffffff, 0.5);
     return cmix(g(u, v), color, 0.18);
   });
-  return finish(key, pc, { winter: false });
+  return finish(key, pc);
 }
 
 // ---------- подземный вид: трубы ----------

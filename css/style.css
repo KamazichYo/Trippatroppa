@@ -45,10 +45,10 @@ input[type=range] { accent-color: var(--accent); width: 100%; }
 .god-btn { background: #3a2a5a !important; }
 
 /* инструменты */
-#tools { position: fixed; left: 0; top: 56px; bottom: 34px; width: 58px; display: flex; flex-direction: column; gap: 4px; padding: 4px; z-index: 9; overflow-y: auto; scrollbar-width: none; }
+#tools { position: fixed; left: 0; top: calc(var(--topH, 52px) + 4px); bottom: 34px; width: 58px; display: flex; flex-direction: column; gap: 4px; padding: 4px; z-index: 9; overflow-y: auto; scrollbar-width: none; }
 #tools button { width: 50px; height: 46px; padding: 0; font-size: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; background: rgba(28,36,51,.92); }
 #tools button small { font-size: 9px; color: var(--dim); margin-top: 2px; }
-#tray { position: fixed; left: 62px; top: 56px; max-height: calc(100vh - 100px); width: 300px; background: rgba(22,28,40,.97); border: 2px solid var(--line); border-radius: 6px; z-index: 9; padding: 6px; overflow-y: auto; }
+#tray { position: fixed; left: 62px; top: calc(var(--topH, 52px) + 4px); max-height: calc(100vh - 100px); width: 300px; background: rgba(22,28,40,.97); border: 2px solid var(--line); border-radius: 6px; z-index: 9; padding: 6px; overflow-y: auto; }
 #tray h3 { margin: 2px 4px 6px; font-weight: 600; color: var(--accent); font-size: 15px; }
 .titem { display: flex; gap: 8px; align-items: center; padding: 4px; border-radius: 4px; cursor: pointer; border: 2px solid transparent; }
 .titem:hover { background: var(--panel2); }
@@ -60,7 +60,7 @@ input[type=range] { accent-color: var(--accent); width: 100%; }
 .titem .tcost { color: var(--accent); font-size: 12px; }
 
 /* инфо-панель */
-#info { position: fixed; right: 8px; top: 60px; width: 330px; max-height: calc(100vh - 110px); overflow-y: auto; background: rgba(22,28,40,.97); border: 2px solid var(--line); border-radius: 6px; z-index: 9; padding: 10px; }
+#info { position: fixed; right: 8px; top: calc(var(--topH, 52px) + 8px); width: 330px; max-height: calc(100vh - 110px); overflow-y: auto; background: rgba(22,28,40,.97); border: 2px solid var(--line); border-radius: 6px; z-index: 9; padding: 10px; }
 #info h2 { margin: 0 0 2px; font-size: 18px; color: var(--accent); font-weight: 600; }
 #info .sub { color: var(--dim); font-size: 12px; margin-bottom: 8px; }
 .close-x { position: absolute; right: 8px; top: 6px; padding: 0 6px; }
@@ -77,7 +77,7 @@ input[type=range] { accent-color: var(--accent); width: 100%; }
 .log div { padding: 1px 0; }
 
 /* модальная панель */
-#panel { position: fixed; left: 50%; top: 60px; transform: translateX(-50%); width: min(720px, 96vw); max-height: calc(100vh - 110px); background: rgba(20,26,38,.98); border: 2px solid var(--line); border-radius: 8px; z-index: 20; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+#panel { position: fixed; left: 50%; top: calc(var(--topH, 52px) + 8px); transform: translateX(-50%); width: min(720px, 96vw); max-height: calc(100vh - 110px); background: rgba(20,26,38,.98); border: 2px solid var(--line); border-radius: 8px; z-index: 20; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
 .panel-head { font-family: var(--pixel); font-size: 13px !important; display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 2px solid var(--line); font-size: 18px; color: var(--accent); }
 #panelBody { padding: 10px 14px; overflow-y: auto; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; }
@@ -108,13 +108,17 @@ tr.click:hover { background: var(--panel2); cursor: pointer; }
 @keyframes fadein { from { opacity: 0; transform: translateY(-8px); } }
 
 @media (max-width: 800px) {
-  #top { height: 46px; gap: 6px; }
+  #top { height: auto; min-height: 46px; gap: 4px 6px; flex-wrap: wrap; padding: 4px 6px; overflow: visible; }
+  .menu { margin-left: 0; }
+  .menu button { padding: 3px 5px; font-size: 14px; }
+  .demand { height: 30px; } .dbar { height: 30px; width: 13px; }
+  #panel { max-height: calc(100vh - var(--topH, 52px) - 50px); }
   .city-name { font-size: 14px; max-width: 100px; }
   .stat { min-width: 0; padding: 2px 5px; font-size: 12px; }
   .date { min-width: 0; font-size: 12px; }
-  #tools { top: 50px; width: 52px; }
+  #tools { width: 52px; }
   #tools button { width: 44px; height: 40px; font-size: 18px; }
-  #tray { left: 56px; top: 50px; width: min(280px, calc(100vw - 64px)); }
+  #tray { left: 56px; width: min(280px, calc(100vw - 64px)); }
   #info { left: 56px; right: 4px; width: auto; top: auto; bottom: 34px; max-height: 45vh; }
   #minimap { width: 96px; height: 96px; }
   .slider-row { grid-template-columns: 110px 1fr 50px; }

@@ -63,11 +63,13 @@ async function main() {
   };
 
   const resize = () => {
+    document.documentElement.style.setProperty('--topH', $('#top').offsetHeight + 'px');
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     renderer.resize(Math.floor(innerWidth * dpr), Math.floor(innerHeight * dpr));
     renderer.dpr = dpr;
   };
   window.addEventListener('resize', resize);
+  if (window.ResizeObserver) new ResizeObserver(() => document.documentElement.style.setProperty('--topH', $('#top').offsetHeight + 'px')).observe($('#top'));
   resize();
   if (renderer.dpr >= 2 && renderer.zi < 4) renderer.zi = 4;
   if (innerWidth < 800) renderer.zi = Math.max(2, renderer.zi - 1);
