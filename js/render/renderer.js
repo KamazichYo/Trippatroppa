@@ -95,31 +95,22 @@ export class Renderer {
     const visible = [];
 
     // ---------- проход 1: земля ----------
+    const useCache = z < 1;
+    if (useCache) {
+      const gc = this.groundCache(z, winter, ug, autumn);
+      ctx.drawImage(gc.cv, Math.round(ox - gc.offX * z), Math.round(oy - 40 * z));
+    }
     for (let d = dMin; d <= dMax; d++) {
       const xa = Math.max(0, d - (w.H - 1), Math.ceil((d + eMin) / 2)), xb = Math.min(w.W - 1, d, Math.floor((d + eMax) / 2));
       for (let x = xa; x <= xb; x++) {
         const y = d - x;
         const i = y * w.W + x;
+        visible.push(i);
+        if (useCache) continue;
         const X = (x - y) * 32, Y = (x + y) * 16;
         const px = S(X - 32), py = T(Y);
-        if (py > H || py + th < -40 * z) { if (py <= H) visible.push(i); continue; }
-        visible.push(i);
-        let e;
-        const v = w.var[i];
-        if (ug) {
-          e = TT.undergroundTile(w.pipe[i] ? w.roadMask(x, y, w.pipe) : 0, !!w.pipe[i], v & 3);
-        } else if (w.terrain[i] === T_WATER) {
-          let m = 0;
-          for (let k = 0; k < 4; k++) { const X2 = x + DIRS[k][0], Y2 = y + DIRS[k][1]; if (w.inb(X2, Y2) && w.terrain[Y2 * w.W + X2] !== T_WATER) m |= 1 << k; }
-          e = TT.waterTile((waterFrame + (v & 3)) & 3, m);
-        } else if (w.road[i]) e = TT.roadTile(w.road[i], w.roadMask(x, y), v & 1);
-        else if (w.rubble[i]) e = TT.rubbleTile(v % 3);
-        else if (w.bld[i] >= 0) {
-          const b = w.buildings.get(w.bld[i]);
-          e = b && b.built < 1 ? TT.constructionTile(v & 1) : TT.grassTile(v % 6);
-        } else if (w.zone[i]) e = TT.zoneTile(ZONES[ZONE_LETTER[w.zone[i]]].color, w.dens[i]);
-        else if (w.terrain[i] === T_SAND) e = TT.sandTile(v % 3);
-        else e = TT.grassTile(v % 6);
+        if (py > H || py + th < -40 * z) continue;
+        const e = this.groundTileFor(x, y, waterFrame, ug);
         const img = winter && e.winter && !ug ? e.winter : e.day;
         ctx.drawImage(img, px, T(Y - e.ay), Math.ceil(img.width * z), Math.ceil(img.height * z));
         // края карты
@@ -180,7 +171,7 @@ export class Renderer {
         this.blit(e, X - 32, Y - e.ay, S, T, z, night, winter);
       }
       // деревья
-      if (w.tree[i] && w.bld[i] < 0 && !w.road[i]) {
+      if (w.tree[i] && w.bld[i] < 0 && !w.road[i] && !useCache) {
         const e = TT.forest(w.tree[i], w.var[i] & 7, autumn);
         this.blit(e, X - 32, Y - e.ay, S, T, z, night, winter);
       }
@@ -220,7 +211,7 @@ export class Renderer {
     if (this.showIcons && !ug) {
       const blink = (performance.now() / 500 | 0) & 1;
       for (const ic of icons) {
-        if (!blink && ic.kind !== 'fire') continue;
+        if ((!blink || z < 1) && ic.kind !== 'fire') continue;
         const img = statusIcon(ic.kind);
         const s = Math.max(1, Math.round(z));
         ctx.drawImage(img, Math.round(ic.x - img.width * s / 2), Math.round(ic.y - img.height * s), img.width * s, img.height * s);
@@ -242,6 +233,58 @@ export class Renderer {
       ctx.fillStyle = `rgba(255,120,40,${0.12 * Math.sin(night * Math.PI)})`;
       ctx.fillRect(0, 0, W, H);
     }
+  }
+
+  groundTileFor(x, y, waterFrame, ug) {
+    const w = this.g.world, i = y * w.W + x, v = w.var[i];
+    if (ug) return TT.undergroundTile(w.pipe[i] ? w.roadMask(x, y, w.pipe) : 0, !!w.pipe[i], v & 3);
+    if (w.terrain[i] === T_WATER) {
+      let m = 0;
+      for (let k = 0; k < 4; k++) { const X2 = x + DIRS[k][0], Y2 = y + DIRS[k][1]; if (w.inb(X2, Y2) && w.terrain[Y2 * w.W + X2] !== T_WATER) m |= 1 << k; }
+      return TT.waterTile((waterFrame + (v & 3)) & 3, m);
+    }
+    if (w.road[i]) return TT.roadTile(w.road[i], w.roadMask(x, y), v & 1);
+    if (w.rubble[i]) return TT.rubbleTile(v % 3);
+    if (w.bld[i] >= 0) { const b = w.buildings.get(w.bld[i]); return b && b.built < 1 ? TT.constructionTile(v & 1) : TT.grassTile(v % 6); }
+    if (w.zone[i]) return TT.zoneTile(ZONES[ZONE_LETTER[w.zone[i]]].color, w.dens[i]);
+    if (w.terrain[i] === T_SAND) return TT.sandTile(v % 3);
+    return TT.grassTile(v % 6);
+  }
+  // кэш земли целиком для дальних масштабов
+  groundCache(z, winter, ug, autumn) {
+    const w = this.g.world;
+    const gc = this.gc;
+    const now = performance.now();
+    if (gc && gc.z === z && gc.winter === winter && gc.ug === ug && gc.autumn === autumn && gc.w === w && (w.changed.size === 0 || now - gc.t < 700)) return gc;
+    w.changed.clear();
+    const offX = w.H * 32;
+    const cw = Math.ceil((w.W + w.H) * 32 * z), ch = Math.ceil(((w.W + w.H) * 16 + 80) * z);
+    const cv = gc && gc.cv.width === cw && gc.cv.height === ch ? gc.cv : document.createElement('canvas');
+    cv.width = cw; cv.height = ch;
+    const x = cv.getContext('2d');
+    x.imageSmoothingEnabled = false;
+    for (let d = 0; d <= w.W + w.H - 2; d++) {
+      for (let tx = Math.max(0, d - (w.H - 1)); tx <= Math.min(w.W - 1, d); tx++) {
+        const ty = d - tx;
+        const e = this.groundTileFor(tx, ty, 0, ug);
+        const img = winter && e.winter && !ug ? e.winter : e.day;
+        const X = (tx - ty) * 32 + offX, Y = (tx + ty) * 16;
+        x.drawImage(img, Math.round((X - 32) * z), Math.round((Y - e.ay + 40) * z), Math.ceil(img.width * z), Math.ceil(img.height * z));
+        if (tx === w.W - 1) { const ed = TT.edgeTile(0, w.terrain[ty * w.W + tx] === T_WATER); x.drawImage(ed.day, Math.round((X - 32) * z), Math.round((Y + 40) * z), Math.ceil(64 * z), Math.ceil(ed.day.height * z)); }
+        if (ty === w.H - 1) { const ed = TT.edgeTile(1, w.terrain[ty * w.W + tx] === T_WATER); x.drawImage(ed.day, Math.round((X - 32) * z), Math.round((Y + 40) * z), Math.ceil(64 * z), Math.ceil(ed.day.height * z)); }
+      }
+    }
+    // деревья поверх (на дальнем масштабе порядок с домами не важен)
+        if (!ug) for (let d = 0; d <= w.W + w.H - 2; d++) for (let tx = Math.max(0, d - (w.H - 1)); tx <= Math.min(w.W - 1, d); tx++) {
+      const ty = d - tx, i = ty * w.W + tx;
+      if (!w.tree[i] || w.bld[i] >= 0 || w.road[i]) continue;
+      const e = TT.forest(w.tree[i], w.var[i] & 7, autumn);
+      const img = winter && e.winter ? e.winter : e.day;
+      const X = (tx - ty) * 32 + offX, Y = (tx + ty) * 16;
+      x.drawImage(img, Math.round((X - 32) * z), Math.round((Y - e.ay + 40) * z), Math.ceil(img.width * z), Math.ceil(img.height * z));
+    }
+    this.gc = { cv, z, winter, ug, w, t: now, offX, autumn };
+    return this.gc;
   }
 
   diamond(cx, cy, z, fill = true) {
