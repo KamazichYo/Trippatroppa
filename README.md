@@ -10,7 +10,7 @@ Top-down шутер в духе жанра «вид сверху, один уд�
 
 ## Как играть
 - Открыть `index.html` в браузере (сборка не нужна; работает и с диска, и с любого статического хостинга). `?nosw` — отключить офлайн-кэш при разработке.
-- GitHub Pages: Settings → Pages → Source: **Deploy from a branch** → `master` / `(root)`. Сайт: https://kamazichyo.github.io/Trippatroppa/ — обновляется сам при каждом пуше в `master` (`.nojekyll` отключает обработку Jekyll).
+- GitHub Pages: Settings → Pages → Source: **GitHub Actions** — workflow `.github/workflows/pages.yml` выкладывает сайт при каждом пуше в `master`. Сайт: https://kamazichyo.github.io/Trippatroppa/
 
 | Действие | Клавиатура/мышь | Телефон |
 |---|---|---|
