@@ -3,19 +3,19 @@
 const PASS_COLS = [[0, 55, 40], [205, 45, 42], [50, 60, 52], [140, 30, 35], [0, 0, 82], [25, 50, 35], [300, 25, 40]];
 const ZONES = [
   { stage: 0, rect: [210, 4760, 1790, 5590], madness: 0.04, grade: [38, 70, 60, 0.12], key: 0, calm: 5,
-    dir: { pool: { shover: 6, pigeon: 3, granny: 1.4 }, waves: 2, budget: [7, 9], maxAlive: 6, relax: 6 },
+    dir: { pool: { shover: 6, pigeon: 3, granny: 1.4 }, waves: 3, budget: [7, 10], maxAlive: 7, relax: 4 },
     loot: [['baguette', 760, 5380], ['umbrella', 300, 5250], ['tea', 1300, 5300]] },
   { stage: 1, rect: [210, 3560, 1990, 4590], madness: 0.18, grade: [210, 25, 50, 0.14], key: 1, calm: 2,
-    dir: { pool: { whisperer: 6, shover: 3, pigeon: 2, starer: 2, granny: 1 }, waves: 3, budget: [8, 11], maxAlive: 8, relax: 7 },
+    dir: { pool: { whisperer: 6, shover: 3, pigeon: 2, starer: 2, granny: 1 }, waves: 4, budget: [8, 12], maxAlive: 9, relax: 4 },
     loot: [['bottle', 420, 4380], ['pan', 1700, 4380], ['brick', 900, 3700], ['pill', 1500, 3700]] },
   { stage: 2, rect: [210, 2460, 1990, 3390], madness: 0.36, grade: [24, 85, 52, 0.18], key: 2, calm: 2, clear: 'gift',
-    dir: { pool: { gopnik: 5, dog: 4, courier: 2.5, whisperer: 2, starer: 1.2, granny: 0.8 }, waves: 3, budget: [10, 13], maxAlive: 10, relax: 7 },
+    dir: { pool: { gopnik: 5, dog: 4, courier: 2.5, whisperer: 2, starer: 1.2, granny: 0.8, mimic: 1.6 }, waves: 4, budget: [10, 14], maxAlive: 11, relax: 4 },
     loot: [['pipe', 700, 3200], ['brick', 1500, 2900], ['tea', 1600, 3250], ['sandwich', 450, 2700]] },
   { stage: 3, rect: [210, 900, 1790, 2290], madness: 0.58, grade: [275, 60, 40, 0.24], key: 3, calm: 2,
-    dir: { pool: { voice: 4, melter: 3, mouth: 3, phantom: 3, dog: 2, whisperer: 1.5, starer: 1 }, waves: 3, budget: [12, 15], maxAlive: 12, relax: 7 },
+    dir: { pool: { voice: 4, melter: 3, mouth: 3, phantom: 3, dog: 2, whisperer: 1.5, starer: 1, mimic: 2 }, waves: 4, budget: [12, 16], maxAlive: 13, relax: 4 },
     loot: [['pan', 600, 2000], ['bottle', 1500, 1500], ['pill', 400, 1400], ['tea', 1400, 1100]] },
   { stage: 4, rect: [160, 340, 1640, 1270], madness: 0.8, grade: [95, 60, 40, 0.16], key: 4, calm: 3, clear: 'lanes',
-    dir: { pool: { mannequin: 4, cart: 3, canEye: 2.5, sausage: 3, voice: 2, melter: 1.5, phantom: 2, dog: 1.5 }, waves: 4, budget: [13, 17], maxAlive: 14, relax: 7, giftAfter: 2, miniboss: 'cashier' },
+    dir: { pool: { mannequin: 4, cart: 3, canEye: 2.5, sausage: 3, voice: 2, melter: 1.5, phantom: 2, dog: 1.5, mimic: 1.2 }, waves: 5, budget: [13, 18], maxAlive: 15, relax: 4, giftAfter: 2, miniboss: 'cashier' },
     loot: [['baguette', 400, 1180], ['bottle', 1400, 1180], ['pill', 900, 700], ['sandwich', 160, 1200]] },
 ];
 

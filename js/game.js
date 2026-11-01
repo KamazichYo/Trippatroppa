@@ -9,11 +9,19 @@ const G = {
 let CV, CTX, W = 0, H = 0, DPR = 1, TEX = null, TEXPAT = null;
 
 function resize() {
-  DPR = Math.min(window.devicePixelRatio || 1, 1.6);
+  const coarse = matchMedia('(pointer:coarse)').matches;
+  DPR = Math.min(window.devicePixelRatio || 1, G.lowQ ? 1 : coarse ? 1.35 : 1.6);
+  readSafe();
   W = innerWidth; H = innerHeight;
   CV.width = Math.floor(W * DPR); CV.height = Math.floor(H * DPR);
   CV.style.width = W + 'px'; CV.style.height = H + 'px';
   G.cam.zoom = clamp(Math.hypot(W, H) / 1200, 0.55, 2);
+}
+const SAFE = { l: 0, r: 0, t: 0, b: 0 };
+function readSafe() {
+  let pr = document.getElementById('safe-probe');
+  if (!pr) { pr = document.createElement('div'); pr.id = 'safe-probe'; pr.style.cssText = 'position:fixed;inset:0;pointer-events:none;visibility:hidden;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)'; document.body.appendChild(pr); }
+  const cs = getComputedStyle(pr); SAFE.t = parseFloat(cs.paddingTop) || 0; SAFE.r = parseFloat(cs.paddingRight) || 0; SAFE.b = parseFloat(cs.paddingBottom) || 0; SAFE.l = parseFloat(cs.paddingLeft) || 0;
 }
 function viewRect(m = 0) { const z = G.cam.zoom; return [G.cam.x - W / 2 / z - m, G.cam.y - H / 2 / z - m, G.cam.x + W / 2 / z + m, G.cam.y + H / 2 / z + m]; }
 function screenToWorld(sx, sy) { const z = G.cam.zoom; return { x: G.cam.x + (sx - W / 2) / z, y: G.cam.y + (sy - H / 2) / z }; }
@@ -48,6 +56,7 @@ async function boot() {
   await loadMap(G.map, T('Грунтую холст…', 'Priming the canvas…'));
   G.P = newPlayer(G.map.spawn.x, G.map.spawn.y); G.cam.x = G.P.x; G.cam.y = G.P.y - 200;
   G.state = 'title'; G.mapDirty = false;
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !QS.has('nosw')) navigator.serviceWorker.register('sw.js').catch(() => {});
   requestAnimationFrame(loop);
   if (QS.has('zone') || QS.has('boss')) { AU.init(); startGame(); } else UI.title();
 }
@@ -56,7 +65,7 @@ async function boot() {
 async function startGame() {
   UI.clear(); G.state = 'loading';
   G.enemies = []; G.projs = []; G.parts = []; G.pickups = []; G.captions = []; G.marks = []; G.puddles = [];
-  G.stats = { kills: 0, melee: 0, ranged: 0, dmg: 0, deaths: 0, time: 0 }; G.aspects = {}; G.perks = new Set(); G.flags = { god: QS.has('god') };
+  G.stats = { kills: 0, melee: 0, ranged: 0, dmg: 0, deaths: 0, time: 0 }; G.aspects = {}; G.perks = new Set(); G.flags = { god: QS.has('god') }; chaosReset(true);
   G.boss = null; G.ending = null; G.director = null; G.zoneI = -1; G.banner = null; AU.boss = false;
   if (G.mapDirty || G.map.name !== 'street') { G.map = buildStreet(); await loadMap(G.map, T('Грунтую холст…', 'Priming the canvas…')); }
   G.mapDirty = true; UI.loadingHide();
@@ -82,6 +91,7 @@ function startZone(i) {
   G.director = new Director(z.dir, z.rect, { calm: z.calm });
   AU.zoneKey = z.key; if (AU.on) AU.setDroneRoot(AU.root());
   G.banner = { text: tr(TXT.stages[z.stage]), sub: tr(TXT.stageHints[z.stage]), t: 4.5 };
+  endGlitch(); if (CHAOS.chal) chalDone(false); CHAOS.trip = 2.2; CHAOS.glitchT = rand(10, 16); CHAOS.chalT = rand(6, 10);
   for (const [id, x, y] of z.loot) { const s = { x, y }; if (!isBlocked(G.map, x, y)) addPickup(s.x, s.y, id); }
   saveCheckpoint();
   AU.play('whisper', 0, 1.2);
@@ -97,7 +107,7 @@ function onPlayerDeath() {
 async function retry() {
   const c = G.check; UI.clear();
   G.enemies = []; G.projs = []; G.marks = []; G.puddles = []; G.captions = []; G.boss = null; G.shelters = null; AU.boss = false; G.pickups = [];
-  G.perks = new Set(c.perks); G.aspects = { ...c.aspects };
+  G.perks = new Set(c.perks); G.aspects = { ...c.aspects }; chaosReset(false);
   const p = (G.P = newPlayer(c.x, c.y)); p.hand = { ...c.hand }; p.gift = c.gift ? { ...c.gift } : null; p.hp = 100; if (p.gift) p.active = 'gift';
   if (c.map.startsWith('arena')) { await enterArena(c.ending, true); return; }
   if (c.map === 'store') { await enterStore(true); return; }
@@ -193,6 +203,7 @@ let lastT = performance.now();
 function loop(now) {
   let dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
   G.dt = dt; G.t += dt;
+  if (G.state === 'play' && !G.lowQ) { G.perfAcc = (G.perfAcc || 0) * 0.97 + dt * 0.03; G.perfN = (G.perfN || 0) + 1; if (G.perfN > 240 && G.perfAcc > 0.027) { G.lowQ = true; resize(); } }
   INPUT.update();
   if (INPUT.pausePressed && (G.state === 'play' || G.state === 'paused')) { if (G.state === 'play') { G.state = 'paused'; UI.pause(); } else { G.state = 'play'; UI.clear(); } }
   if (G.state === 'play') {
@@ -210,13 +221,15 @@ function update(dt) {
   const p = G.P, m = G.map;
   G.stats.time += dt;
   updatePlayer(dt);
+  chaosUpdate(dt);
   G.flowT = (G.flowT || 0) - dt; if (G.flowT <= 0) { G.flowT = 0.25; updateFlow(m, p.x, p.y); }
   if (G.director) {
     G.director.update(dt);
-    if (G.director.done && !G.director.reported && G.zoneI >= 0 && G.map.name === 'street' && G.enemies.length === 0) { G.director.reported = true; zoneCleared(); }
+    if (G.director.done && !G.director.reported && G.zoneI >= 0 && G.map.name === 'street' && !G.enemies.some((e) => !e.ambient)) { G.director.reported = true; zoneCleared(); }
   }
   if (m.name === 'store') storeUpdate();
-  updateEnemies(dt); updateProjs(dt); updateMarks(dt); updateParts(dt);
+  const tm = timeMul();
+  updateEnemies(dt * tm); updateProjs(dt, tm); updateMarks(dt * tm); updateParts(dt);
   G.pickups = G.pickups.filter((k) => !k.dead);
   for (const g of m.gates) if (g.open) g.t += dt;
   G.pathLimit = damp(G.pathLimit, G.pathTarget, 1.2, dt);
@@ -258,11 +271,17 @@ function render() {
   const v = viewRect(80);
   drawMap(ctx, G.map, v[0], v[1], v[2], v[3]);
   drawAnimDecor(ctx, 0);
+  if (G.state !== 'title') drawFlowStrokes(ctx);
   if (G.state !== 'title') {
     drawPath(ctx); drawGates(ctx); drawMarks(ctx); drawPickups(ctx);
     const list = G.enemies.filter((e) => e.x > v[0] - 200 && e.x < v[2] + 200 && e.y > v[1] - 200 && e.y < v[3] + 200);
     list.sort((a, b) => (a.def.beh === 'mouth' ? -1e5 : a.y) - (b.def.beh === 'mouth' ? -1e5 : b.y));
+    if ((G.madness > 0.55 || CHAOS.hyper > 0 || CHAOS.glitch) && !G.lowQ) for (const e of list) { // шлейф-двойник у быстрых галлюцинаций
+      if (e.boss || e.hidden || e.disg || Math.hypot(e.vx, e.vy) < 90) continue;
+      ctx.save(); ctx.globalAlpha = 0.22; ctx.translate(-e.vx * 0.09, -e.vy * 0.09); drawEnemy(ctx, e); ctx.restore();
+    }
     for (const e of list) if (!e.boss) drawEnemy(ctx, e);
+    drawAlly(ctx);
     if (!G.P.dead || G.slowmo > 0) drawPlayer(ctx);
     for (const e of list) if (e.boss) drawBoss(ctx, e);
     for (const bb of G.projs) drawProj(ctx, bb);
@@ -288,6 +307,11 @@ function post(ctx, mad) {
     ctx.restore();
   }
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  if (G.state !== 'title') drawWave(ctx);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  if (CHAOS.hyper > 0) { ctx.globalCompositeOperation = 'saturation'; ctx.fillStyle = 'hsla(0,100%,50%,.45)'; ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = 'source-over'; }
+  if (CHAOS.trip > 0.05) { ctx.globalCompositeOperation = 'hue'; ctx.fillStyle = hsl((G.t * 160) % 360, 80, 50, Math.min(0.4, CHAOS.trip * 0.22) * G.fx); ctx.fillRect(0, 0, W, H); ctx.globalCompositeOperation = 'source-over'; }
+  if (gl('disco')) { ctx.globalCompositeOperation = 'overlay'; for (let i = 0; i < 3; i++) { const x = W / 2 + Math.sin(G.t * 2 + i * 2) * W * 0.35, y = H / 2 + Math.cos(G.t * 1.6 + i) * H * 0.3; const g = ctx.createRadialGradient(x, y, 0, x, y, 260); g.addColorStop(0, hsl((G.t * 300 + i * 120) % 360, 100, 60, 0.6 * G.fx)); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); } ctx.globalCompositeOperation = 'source-over'; }
   // виньетка + пульс при низком рассудке
   const p = G.P, low = p ? clamp(1 - p.hp / 45, 0, 1) : 0;
   const pulse = low * (0.5 + 0.5 * Math.sin(G.t * (5 + low * 4)));
@@ -296,6 +320,8 @@ function post(ctx, mad) {
   ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
   if (p && p.hurtT > 0) { ctx.fillStyle = `rgba(160,10,30,${p.hurtT * 0.6})`; ctx.fillRect(0, 0, W, H); }
   if (G.flash > 0) { ctx.fillStyle = `rgba(255,250,235,${G.flash * 0.7})`; ctx.fillRect(0, 0, W, H); }
+  if (CHAOS.hyper > 0) { const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.hypot(W, H) * 0.6); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(255,200,40,.35)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
+  if (G.state !== 'title') drawDrips(ctx);
   // фактура холста поверх всего
   ctx.globalCompositeOperation = 'overlay'; ctx.globalAlpha = 0.32; ctx.fillStyle = TEXPAT; ctx.fillRect(0, 0, W, H);
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
@@ -314,7 +340,7 @@ function txt(ctx, s, x, y, size = 22, col = '#f4ead8', align = 'left', font = 'C
 function drawHUD(ctx) {
   const p = G.P; if (!p) return;
   const s = clamp(Math.min(W, H) / 700, 0.7, 1.3);
-  ctx.save(); ctx.scale(s, s); const w = W / s, h = H / s;
+  ctx.save(); ctx.translate(SAFE.l, SAFE.t); ctx.scale(s, s); const w = (W - SAFE.l - SAFE.r - (INPUT.touch ? 70 : 0)) / s, h = (H - SAFE.t - SAFE.b) / s;
   // рассудок
   txt(ctx, T('РАССУДОК', 'SANITY'), 24, 26, 22);
   paintBar(ctx, 28, 52, 220, 14, p.hp / p.max, p.hp > 40 ? [44, 75, 58] : [355, 75, 55]);
@@ -352,6 +378,7 @@ function drawHUD(ctx) {
   }
   // баннер стадии
   if (G.banner) { const k = Math.min(1, G.banner.t, 0.6) / 0.6; ctx.save(); ctx.globalAlpha = k; txt(ctx, G.banner.text, w / 2, h * 0.28, 44, '#ffe2b0', 'center', 'wet'); if (G.banner.sub) txt(ctx, G.banner.sub, w / 2, h * 0.28 + 44, 24, '#f0e0c8', 'center'); ctx.restore(); }
+  drawChaosHUD(ctx, w, h);
   ctx.restore();
   // сенсорные стики
   if (INPUT.touch) for (const k of ['L', 'R']) { const st = INPUT.sticks[k]; if (!st) continue; ctx.strokeStyle = 'rgba(255,240,200,.35)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(st.ox, st.oy, 60, 0, TAU); ctx.stroke(); ctx.fillStyle = 'rgba(255,240,200,.35)'; ctx.beginPath(); ctx.arc(st.ox + clamp(st.x - st.ox, -60, 60), st.oy + clamp(st.y - st.oy, -60, 60), 24, 0, TAU); ctx.fill(); }

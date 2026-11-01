@@ -9,6 +9,9 @@ const UI = {
     document.getElementById('tbtn-swap').addEventListener('touchstart', (e) => { INPUT.swapPressed = true; e.preventDefault(); });
     document.getElementById('tbtn-throw').addEventListener('touchstart', (e) => { INPUT.throwPressed = true; e.preventDefault(); });
     document.getElementById('tbtn-pause').addEventListener('touchstart', (e) => { INPUT.pausePressed = true; e.preventDefault(); });
+    document.getElementById('rotate-text').textContent = T('Поверни телефон горизонтально — так видно больше галлюцинаций.', 'Turn your phone sideways — you will see more hallucinations.');
+    const ro = document.getElementById('rotate-ok'); ro.textContent = T('Играть так', 'Play anyway'); ro.onclick = () => document.body.classList.add('portrait-ok');
+    addEventListener('touchend', () => AU.init(), { passive: true });
     if (matchMedia('(pointer:coarse)').matches) { INPUT.touch = true; document.body.classList.add('touch'); }
     try { AU.voices = localStorage.getItem('tp_voices') !== '0'; G.fx = localStorage.getItem('tp_fx') === '0' ? 0.35 : 1; } catch (e) { /* без хранилища */ }
   },
@@ -30,10 +33,10 @@ const UI = {
         <button id="b-fx">${T('Эффекты', 'Effects')}: ${G.fx === 1 ? T('полные', 'full') : T('мягкие', 'soft')}</button>
       </div>
       <div class="help">${INPUT.touch || matchMedia('(pointer:coarse)').matches
-        ? T('Левый палец — идти, правый — целиться и бить. Кнопки: рывок, взять, сменить, бросить.', 'Left thumb — walk, right thumb — aim & attack. Buttons: dash, take, swap, throw.')
+        ? T('Левый палец — идти (рядом с врагом герой бьёт сам), правый — целиться и стрелять, прицел липнет к врагам. Кнопки: рывок, взять, сменить, бросить.', 'Left thumb — walk (you auto-attack nearby enemies), right thumb — aim & fire with aim assist. Buttons: dash, take, swap, throw.')
         : T('<b>WASD</b> — идти · <b>мышь</b> — целиться/бить · <b>Пробел</b> — рывок · <b>E</b> — взять · <b>ПКМ/G</b> — бросить · <b>Q/колесо</b> — сменить оружие · <b>Esc</b> — пауза', '<b>WASD</b> — move · <b>mouse</b> — aim/attack · <b>Space</b> — dash · <b>E</b> — take · <b>RMB/G</b> — throw · <b>Q/wheel</b> — swap weapon · <b>Esc</b> — pause')}</div>
       <p class="warn">${T('Гротескная игра о тревоге и галлюцинациях. Чёрный юмор, вспышки, шёпот. ~15 минут.', 'A grotesque game about anxiety and hallucinations. Dark humour, flashes, whispers. ~15 minutes.')}</p>`, 'title');
-    el.querySelector('#b-start').onclick = () => { AU.init(); AU.play('click'); startGame(); };
+    el.querySelector('#b-start').onclick = () => { AU.init(); AU.play('click'); try { if (window.speechSynthesis) { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } } catch (e) { /* без голосов */ } startGame(); };
     el.querySelector('#b-lang').onclick = () => { LANG = LANG === 'ru' ? 'en' : 'ru'; try { localStorage.setItem('tp_lang', LANG); } catch (e) { /* */ } document.documentElement.lang = LANG; this.title(); };
     el.querySelector('#b-voice').onclick = () => { AU.voices = !AU.voices; try { localStorage.setItem('tp_voices', AU.voices ? '1' : '0'); } catch (e) { /* */ } this.title(); };
     el.querySelector('#b-fx').onclick = () => { G.fx = G.fx === 1 ? 0.35 : 1; try { localStorage.setItem('tp_fx', G.fx === 1 ? '1' : '0'); } catch (e) { /* */ } this.title(); };
@@ -84,7 +87,7 @@ const UI = {
     const el = this.panel(`<h2 class="wet">${T('Победа', 'Victory')}: ${tr(E.boss)}</h2>
       <p class="story">${tr(E.win)}</p>
       <p class="story small">${T('Ты вернулся домой. В авоське: хлеб, молоко и ', 'You came home. In the string bag: bread, milk and ')}${tr(E.item)}.<br>${T('Психолог: «Ну вот. А вы боялись. В четверг — на почту».', 'Therapist: "See? And you were scared. Thursday — the post office."')}</p>
-      <div class="stats"><span>⏱ ${mm}:${String(ss).padStart(2, '0')}</span><span>☠ ${s.kills} ${T('галлюцинаций', 'hallucinations')}</span><span>💀 ${s.deaths} ${T('срывов', 'breakdowns')}</span><span>🏁 ${T('концовок', 'endings')}: ${found}/6</span></div>
+      <div class="stats"><span>⏱ ${mm}:${String(ss).padStart(2, '0')}</span><span>☠ ${s.kills} ${T('галлюцинаций', 'hallucinations')}</span><span>💀 ${s.deaths} ${T('срывов', 'breakdowns')}</span><span>🏁 ${T('концовок', 'endings')}: ${found}/6</span><span>★ ${CHAOS.score}</span><span>× ${CHAOS.best} ${T('лучшее комбо', 'best combo')}</span></div>
       <button class="big" id="b-again">${T('Ещё прогулка', 'Another walk')}</button>`, 'card ending');
     el.querySelector('#b-again').onclick = () => { AU.play('click'); AU.musicOn = false; this.title(); };
   },

@@ -56,6 +56,11 @@ function updateBoss(e, dt) {
   e.sq.update(0, dt); e.spawnT = Math.min(1, e.spawnT + dt);
   if (e.dying) { e.dieT = (e.dieT || 0) + dt; if (e.dieT > 2.6 && !e.reported) { e.reported = true; e.dead = true; onBossDefeated(e); } return; }
   e.phase = e.hp < e.maxHp * 0.5 ? 2 : 1;
+  if (e.phase === 2 && !e.ph2) { // трансформация босса на второй фазе
+    e.ph2 = true; e.bigger = 1.18; CHAOS.trip = 1.8; G.flash = 0.7; AU.play('roar'); AU.play('morph');
+    floatText(e.x, e.y - 110, T('ТРАНСФОРМАЦИЯ', 'TRANSFORMATION'), [300, 90, 72]);
+    for (let i = 0; i < 40; i++) { const a = rand(TAU), s = rand(100, 420); part(e.x, e.y, Math.cos(a) * s, Math.sin(a) * s, rand(0.5, 1.1), rand(6, 14), [rand(360), 85, 60]); }
+  }
   const sp = e.phase === 2 ? 1.25 : 1;
   // перемещение по умолчанию
   const mover = BOSS_MOVE[e.kind]; if (mover) mover(e, dt, sp);

@@ -66,6 +66,7 @@ function tree(m, x, y, r, hue = 105) {
   paint(m, sdf, bbC(x, y, r * 1.2), (px, py, rr) => [hue + (rr() - 0.5) * 30, 40 + rr() * 15, 28 + rr() * 12], MST.foliage);
   for (let i = 0; i < 3; i++) { const a = rng() * TAU, d = rng() * r * 0.4, cr = r * (0.35 + rng() * 0.2); paint(m, sdWobble(sdCircle(x + Math.cos(a) * d - r * 0.15, y + Math.sin(a) * d - r * 0.2, cr), 3, 0.08, i), bbC(x, y, r), (px, py, rr) => [hue - 10 + rr() * 30, 50, 42 + rr() * 14], { ...MST.foliage, step: 5, len: 10 }); }
   solidC(m, x, y, Math.max(10, r * 0.22));
+  m.anim.push({ t: 'treeEye', x, y, r, ph: hash2(x | 0, y | 0, 8) * TAU });
 }
 function car(m, x, y, ang, col) {
   const L = 46, Wd = 21;

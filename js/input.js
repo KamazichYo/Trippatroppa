@@ -16,6 +16,20 @@ const INPUT = {
     this.mx = mx; this.my = my;
     if (R) { const dx = R.x - R.ox, dy = R.y - R.oy, d = Math.hypot(dx, dy); if (d > 12) { this.aimAng = Math.atan2(dy, dx); this.fire = d > 26; } else this.fire = false; }
     else if (this.touch) { this.fire = false; if (mx || my) this.aimAng = Math.atan2(my, mx); }
+    if (this.touch && G.P && G.state === 'play') {
+      const p = G.P; let best = null, bs = 1e9;
+      for (const e of G.enemies) {
+        if (e.dead || e.hidden || e.disg || (e.def.beh === 'mimic' && e.st === 'hide')) continue;
+        const d = dist(p.x, p.y, e.x, e.y); if (d > 650) continue;
+        const da = Math.abs(wrapA(angTo(p.x, p.y, e.x, e.y) - this.aimAng));
+        const sc = R ? (da < 0.5 ? d * (1 + da * 3) : 1e9) : d; if (sc < bs) { bs = sc; best = e; }
+      }
+      if (best) {
+        const a = angTo(p.x, p.y, best.x, best.y + (best.hy || 0));
+        if (R) this.aimAng = a;
+        else { const w = WEAP[curW(p).id], range = w.kind === 'melee' ? w.range + best.r + 40 : 460; if (dist(p.x, p.y, best.x, best.y) < range) { this.aimAng = a; this.fire = w.kind === 'bow' ? G.t % 0.95 < 0.75 : true; } }
+      }
+    }
     else if (G.P && G.cam) { const w = screenToWorld(this.sx, this.sy); this.aimAng = Math.atan2(w.y - G.P.y, w.x - G.P.x); this.aimDist = dist(G.P.x, G.P.y, w.x, w.y); this.fire = this.mouseDown || k.has('KeyJ'); }
   },
 };

@@ -165,6 +165,16 @@ function bakeAll(progress) {
       for (let i = 0; i < 5; i++) P(ctx, r, sdCircle(-25 + r() * 50, (r() - 0.5) * 36, 3 + r() * 3), bbC(0, 0, 40), [220, 5, 35], ST.fine);
     });
   });
+  J(() => {
+    SPR.mimicBox = bake(56, 44, 990, (c, r) => { P(c, r, sdBox(0, 0, 22, 16, 3), bbB(0, 0, 22, 16), [140, 30, 28], ST.obj); P(c, r, sdBox(0, 0, 18, 12, 2), bbB(0, 0, 18, 12), [140, 30, 20], ST.fine); });
+    SPR.mimicOpen = [0, 1].map((f) => bake(70, 60, 991 + f, (c, r) => {
+      P(c, r, sdBox(-4, 0, 22, 18, 3), bbB(-4, 0, 22, 18), [140, 35, 26], ST.obj);
+      c.fillStyle = '#1a0308'; c.beginPath(); c.ellipse(6, 0, 15, 12 + f * 2, 0, 0, TAU); c.fill();
+      for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU; dab(c, r, 6 + Math.cos(a) * 12, Math.sin(a) * (10 + f * 2), 2.2, [45, 20, 92], a); }
+      P(c, r, sdCapsule(6, 0, 26 + f * 4, f * 3, 3.5), [4, -6, 32, 8], [350, 70, 52], ST.fine);
+      for (const s of [-1, 1]) { P(c, r, sdCircle(-10, s * 8, 3.4), bbC(-10, s * 8, 3.4), [55, 90, 60], ST.fine); c.fillStyle = '#100'; c.beginPath(); c.arc(-9, s * 8, 1.5, 0, TAU); c.fill(); }
+    }));
+  });
   // Подбираемые вещи и оружие
   J(() => {
     const W = (k, w, h, s, fn) => { SPR['w_' + k] = bake(w, h, s, fn); };

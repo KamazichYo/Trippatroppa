@@ -66,11 +66,29 @@ function drawPlayer(ctx) {
 }
 
 function drawEnemy(ctx, e) {
-  const d = e.def, sc = (d.scale || 1) * (0.55 + 0.45 * easeOutBack(Math.min(1, e.spawnT)));
+  const d = e.def;
+  let sc = (d.scale || 1) * (e.gScale || 1) * (e.elite ? 1.25 : 1) * (0.55 + 0.45 * easeOutBack(Math.min(1, e.spawnT)));
   const alpha = Math.min(1, e.spawnT * 2.2);
   const sq = e.sq.x * 0.03;
-  const wob = G.madness > 0.4 ? Math.sin(G.t * 5 + e.seed) * 0.05 * G.madness : 0;
-  ctx.save(); ctx.globalAlpha = alpha;
+  let wob = (G.madness > 0.4 ? Math.sin(G.t * 5 + e.seed) * 0.05 * G.madness : 0) + (e.dance ? Math.sin(G.t * 11 + e.seed) * 0.6 : 0);
+  ctx.save(); ctx.globalAlpha *= alpha;
+  if (e.elite) { // аура мутанта
+    ctx.save(); ctx.lineCap = 'round';
+    for (let i = 0; i < 3; i++) { ctx.strokeStyle = hsl((G.t * 140 + i * 120) % 360, 90, 62, 0.55); ctx.lineWidth = 4; const R = e.r + 9 + Math.sin(G.t * 6 + i) * 3, a0 = G.t * 3 + i * 2.1; ctx.beginPath(); ctx.arc(e.x, e.y, R, a0, a0 + 2.2); ctx.stroke(); }
+    ctx.restore();
+  }
+  if (e.disg) { // пока что — просто прохожий
+    shadow(ctx, e.x, e.y, 14);
+    drawHuman(ctx, SPR[e.disg], e.x, e.y, e.ang, e.walk, e.moveAmt, e.t, { seed: e.seed, flash: e.flash, sq });
+    ctx.restore(); return;
+  }
+  if (e.morphT > 0 && e.morphFrom) { // маска сползает: старый образ растягивается и тает, новый вырастает со спином
+    const k = 1 - e.morphT / 0.7;
+    ctx.save(); ctx.globalAlpha *= 1 - k;
+    drawHuman(ctx, SPR[e.morphFrom], e.x, e.y, e.ang + k * 5, e.walk, 0, e.t, { seed: e.seed, sq: k * 0.7, scale: 1 + k * 0.5 });
+    ctx.restore();
+    ctx.globalAlpha *= 0.25 + 0.75 * k; sc *= 0.3 + 0.7 * easeOutBack(k); wob += (1 - k) * -5;
+  }
   if (d.human) {
     shadow(ctx, e.x, e.y, 14 * sc);
     let armL, armR;
@@ -87,6 +105,15 @@ function drawEnemy(ctx, e) {
 }
 function flashImg(ctx, img, e) { if (e.flash > 0) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = clamp(e.flash * 5, 0, 0.8); ctx.drawImage(img, -img.cx, -img.cy); ctx.restore(); } }
 const DRAWE = {
+  mimic(ctx, e, sc) {
+    shadow(ctx, e.x, e.y, 22, 15);
+    if (e.st === 'hide') { ctx.save(); ctx.translate(e.x, e.y); ctx.drawImage(SPR.mimicBox, -SPR.mimicBox.cx, -SPR.mimicBox.cy); flashImg(ctx, SPR.mimicBox, e); ctx.restore(); return; }
+    ctx.save(); ctx.translate(e.x + (e.st === 'wake' ? Math.sin(e.t * 60) * 3 : 0), e.y); ctx.rotate(e.ang); ctx.scale(sc * (1 + e.sq.x * 0.03), sc);
+    ctx.strokeStyle = 'rgba(30,15,20,.9)'; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
+    for (const [lx, s, ph] of [[10, -1, 0], [10, 1, Math.PI], [-14, -1, Math.PI], [-14, 1, 0]]) { const k = Math.sin(e.walk * 1.6 + ph) * 8 * e.moveAmt; ctx.beginPath(); ctx.moveTo(lx, s * 14); ctx.quadraticCurveTo(lx + k, s * 24, lx + k * 1.4, s * 30); ctx.stroke(); }
+    const b = SPR.mimicOpen[Math.floor(e.t * 8) % 2]; ctx.drawImage(b, -b.cx, -b.cy); flashImg(ctx, b, e);
+    ctx.restore();
+  },
   pigeon(ctx, e, sc) {
     shadow(ctx, e.x, e.y + 14, 8, 5, 0.18);
     ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(e.ang); ctx.scale(sc, sc);
@@ -188,7 +215,8 @@ function drawBoss(ctx, e) {
     if (k === 'jesus') { ctx.strokeStyle = hsl(48, 90, 70, 0.7 * alpha); ctx.lineWidth = 6; ctx.beginPath(); ctx.ellipse(e.x, e.y - 50, 40, 12, 0, 0, TAU); ctx.stroke(); }
     if (k !== 'space') shadow(ctx, e.x, e.y + fr.height * 0.4, fr.width * 0.35, 18);
     const bob = Math.sin(t * (k === 'space' ? 0.8 : 2.4)) * (k === 'space' ? 10 : 4);
-    drawImg(ctx, fr, e.x, e.y + bob, (e.spin || 0) + Math.sin(t * 1.3) * 0.03 + (e.dizzy ? Math.sin(t * 6) * 0.2 : 0), 1 + sq, 1 - sq);
+    const big = e.bigger || 1;
+    drawImg(ctx, fr, e.x, e.y + bob, (e.spin || 0) + Math.sin(t * 1.3) * 0.03 + (e.dizzy ? Math.sin(t * 6) * 0.2 : 0), (1 + sq) * big, (1 - sq) * big);
     if (k === 'hell') drawImg(ctx, SPR.pitchfork, e.x + 60, e.y + 10, e.atk && e.atk.n === 'dash' ? e.atk.ang : -1.2 + Math.sin(t * 2) * 0.2);
     if (k === 'space') { ctx.save(); ctx.globalAlpha *= 0.5; ctx.strokeStyle = hsl(40, 60, 70); ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(e.x, e.y + bob, 190, 40, -0.25, 0, TAU); ctx.stroke(); ctx.restore(); }
     if (e.dizzy) for (let i = 0; i < 4; i++) { const a = t * 5 + i * 1.6; ctx.fillStyle = hsl(50, 90, 70); ctx.beginPath(); ctx.arc(e.x + Math.cos(a) * 40, e.y - 80 + Math.sin(a) * 10, 4, 0, TAU); ctx.fill(); }
@@ -298,12 +326,16 @@ function drawAnimDecor(ctx, layer) {
     if (layer === 1 && a.t === 'eye') {
       const vis = G.madness > 0.45 ? clamp((G.madness - 0.45) * 3, 0, 1) : 0; if (vis <= 0) continue;
       const open = clamp(Math.sin(G.t * 0.7 + a.ph) * 2, 0, 1) * vis; if (open <= 0.02) continue;
-      const lx = a.x - a.s * 6, ly = a.y, look = angTo(lx, ly, G.P.x, G.P.y);
-      ctx.save(); ctx.translate(lx, ly); ctx.scale(1, open);
-      ctx.fillStyle = 'rgba(240,230,210,.95)'; ctx.beginPath(); ctx.ellipse(0, 0, 13, 22, 0, 0, TAU); ctx.fill();
-      ctx.fillStyle = 'rgba(160,30,60,.95)'; ctx.beginPath(); ctx.arc(Math.cos(look) * 5, Math.sin(look) * 9, 7, 0, TAU); ctx.fill();
-      ctx.fillStyle = '#100'; ctx.beginPath(); ctx.arc(Math.cos(look) * 6, Math.sin(look) * 10, 3.4, 0, TAU); ctx.fill();
-      ctx.restore();
+      drawEyeAt(ctx, a.x - a.s * 6, a.y, 13, 22, open);
+    }
+    if (layer === 1 && a.t === 'treeEye') { // деревья открывают глаза
+      const vis = clamp((G.madness - 0.42) * 3, 0, 1); if (vis <= 0) continue;
+      if (dist(a.x, a.y, G.cam.x, G.cam.y) > 1100) continue;
+      for (let i = 0; i < 3; i++) {
+        const ox = (hash2(i, a.x | 0, 3) - 0.5) * a.r * 1.1, oy = (hash2(i, a.y | 0, 4) - 0.5) * a.r * 1.1, sz = 5 + hash2(i, a.x | 0, 5) * 6;
+        const open = clamp(Math.sin(G.t * (0.5 + i * 0.3) + a.ph + i * 2) * 2.5, 0, 1) * vis; if (open <= 0.02) continue;
+        drawEyeAt(ctx, a.x + ox, a.y + oy, sz * 1.5, sz, open);
+      }
     }
   }
   if (layer === 1) for (const s of G.map.signs) {
@@ -314,6 +346,15 @@ function drawAnimDecor(ctx, layer) {
   }
 }
 
+function drawEyeAt(ctx, x, y, rx, ry, open) {
+  const look = angTo(x, y, G.P.x, G.P.y);
+  ctx.save(); ctx.translate(x, y); ctx.scale(1, open);
+  ctx.fillStyle = 'rgba(240,230,210,.95)'; ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, TAU); ctx.fill();
+  const ir = Math.min(rx, ry) * 0.55;
+  ctx.fillStyle = 'rgba(160,30,60,.95)'; ctx.beginPath(); ctx.arc(Math.cos(look) * rx * 0.35, Math.sin(look) * ry * 0.4, ir, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#100'; ctx.beginPath(); ctx.arc(Math.cos(look) * rx * 0.42, Math.sin(look) * ry * 0.45, ir * 0.5, 0, TAU); ctx.fill();
+  ctx.restore();
+}
 // Пикапы: покачиваются и мерцают
 function drawPickups(ctx) {
   for (const k of G.pickups) {

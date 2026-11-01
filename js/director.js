@@ -28,11 +28,11 @@ class Director {
       case 'calm': if (this.stT <= 0) this.startWave(); break;
       case 'build':
         this.spawnTick(dt, 1.0);
-        if (this.spent >= this.budget * 0.55 || this.stress > 0.7 || this.stT <= 0) { this.state = 'peak'; this.stT = 14 + this.wave * 2; this.peakFx(); }
+        if (this.spent >= this.budget * 0.55 || this.stress > 0.7 || this.stT <= 0) { this.state = 'peak'; this.stT = 10 + this.wave; this.peakFx(); }
         break;
       case 'peak':
         this.spawnTick(dt, 1.8);
-        if (this.spent >= this.budget || this.stT <= 0) { this.state = 'fade'; this.stT = 22; }
+        if (this.spent >= this.budget || this.stT <= 0) { this.state = 'fade'; this.stT = 16; }
         break;
       case 'fade':
         if (this.alive() <= Math.max(1, Math.floor(this.cfg.maxAlive * 0.15)) || this.stT <= 0) {
@@ -51,7 +51,7 @@ class Director {
     const [a, b] = this.cfg.budget;
     const ease = this.peakStress > 0.75 ? -2 : this.peakStress < 0.35 ? 2 : 0;
     this.budget = Math.round(lerp(a, b, (this.wave - 1) / Math.max(1, this.waves - 1))) + ease;
-    this.spent = 0; this.peakStress = 0; this.state = 'build'; this.stT = 12; this.spawnT = 0.5;
+    this.spent = 0; this.peakStress = 0; this.state = 'build'; this.stT = 9; this.spawnT = 0.5;
     this.formation = weightedPick([['mixed', 3], ['pincer', 1.2], ['ambush', this.style.still > 2 ? 3 : 1], ['swarm', 1], ['choir', this.cfg.pool.whisperer || this.cfg.pool.voice ? 1.2 : 0]]);
     this.events.push({ t: 'wave', wave: this.wave });
   }
@@ -97,12 +97,13 @@ class Director {
     for (let i = 0; i < n; i++) { spawnEnemy(type, pos.x + rand(-20, 20) * (n > 1 ? 1 : 0), pos.y + rand(-20, 20) * (n > 1 ? 1 : 0)); }
     if (this.formation === 'pincer' && chance(0.5)) { const p2 = this.spawnPos(type, this.wave % 2 ? 'right' : 'left'); if (p2) spawnEnemy(type, p2.x, p2.y); }
     this.spent += n > 1 ? Math.ceil(n / 2) : 1;
-    this.spawnT = rand(1.1, 2.0) / rate;
+    this.spawnT = rand(0.85, 1.6) / rate;
   }
   spawnPos(type, mode) {
     const p = G.P, m = G.map, [x0, y0, x1, y1] = this.rect, beh = EDEF[type].beh;
     const view = viewRect(60);
     if (beh === 'mouth') return { x: p.x, y: p.y };
+    if (beh === 'mimic') { for (let i = 0; i < 25; i++) { const a = rand(TAU), r = rand(240, 430), x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r; if (x > x0 && x < x1 && y > y0 && y < y1 && !isBlocked(m, x, y) && !isBlocked(m, x + 24, y) && !isBlocked(m, x - 24, y)) return { x, y }; } return null; }
     if (beh === 'turret' && m.name === 'store') { // консервы прямо на полках
       const shelves = [300, 500, 680, 1060, 1240, 1440]; for (let i = 0; i < 10; i++) { const sx = pick(shelves) + 32, sy = rand(500, 960); if (dist(sx, sy, p.x, p.y) > 200) return { x: sx, y: sy, onShelf: true }; } return null;
     }

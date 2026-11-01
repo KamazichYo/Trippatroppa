@@ -3,7 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#1a1018">
+<meta name="theme-color" content="#120810">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Trippatroppa">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
 <title>Trippatroppa</title>
 <meta name="description" content="Top-down shooter, painted in oils: a walk to the store through five stages of madness.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,6 +23,7 @@
 <div id="ui"></div>
 <div id="fade"></div>
 <div id="loading" class="on"><div class="wet">TRIPPATROPPA</div><div class="bar"><i></i></div><div class="lbl"></div></div>
+<div id="rotate"><div class="wet">↻</div><p id="rotate-text"></p><button id="rotate-ok"></button></div>
 <div id="touch">
   <button id="tbtn-pause">❚❚</button>
   <button id="tbtn-dash">⇢</button>
@@ -33,6 +41,7 @@
 <script src="js/entities.js"></script>
 <script src="js/director.js"></script>
 <script src="js/bosses.js"></script>
+<script src="js/chaos.js"></script>
 <script src="js/render.js"></script>
 <script src="js/input.js"></script>
 <script src="js/ui.js"></script>

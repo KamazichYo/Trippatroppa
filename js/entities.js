@@ -48,6 +48,7 @@ const EDEF = {
   cart: { hp: 5, r: 22, spd: 70, dmg: 15, beh: 'charger', chargeSpd: 540, bounce: 3, tags: ['charge'], col: [210, 8, 68], draw: 'cart' },
   canEye: { hp: 3, r: 15, spd: 0, dmg: 7, beh: 'turret', words: 'store', fire: 1.9, tags: ['ranged'], col: [200, 6, 72], draw: 'can', psy: true },
   sausage: { hp: 6, r: 13, spd: 155, dmg: 10, beh: 'snake', segs: 7, tags: ['rush'], col: [355, 50, 52], draw: 'snake' },
+  mimic: { hp: 5, r: 20, spd: 205, dmg: 12, beh: 'mimic', tags: ['ambush'], col: [140, 30, 28], draw: 'mimic' },
   // помощники боссов
   cosmo: { hp: 2, r: 14, spd: 115, dmg: 6, human: 'hallu1', beh: 'ranged', words: 'space', keep: 300, fire: 2.2, tags: ['ranged'], col: [170, 60, 35], psy: true },
   cherub: { hp: 2, r: 12, spd: 195, dmg: 6, beh: 'flyer', fly: true, group: [3, 5], tags: ['swarm'], col: [15, 55, 78], draw: 'cherub' },
@@ -58,6 +59,9 @@ const EDEF = {
   tvset: { hp: 4, r: 20, spd: 0, dmg: 10, beh: 'starer', tags: ['sniper'], col: [25, 40, 30], draw: 'tv', psy: true },
   critic: { hp: 3, r: 14, spd: 105, dmg: 7, human: 'critic', beh: 'ranged', words: 'art', keep: 260, fire: 2.2, tags: ['ranged'], col: [0, 0, 16], psy: true },
 };
+
+// кто приходит, прикинувшись обычным прохожим
+const DISGUISE = ['gopnik', 'phantom', 'whisperer', 'courier', 'melter', 'granny'];
 
 // ── игрок ──
 function newPlayer(x, y) {
@@ -70,8 +74,8 @@ function giftMul(p) { return p.gift ? 1 + 0.35 * (p.gift.lvl - 1) : 1; }
 
 function updatePlayer(dt) {
   const p = G.P, I = INPUT;
-  p.t += dt; p.atkCd -= dt; p.dashCd -= dt; p.inv -= dt; p.hurtT -= dt; p.slow -= dt;
-  const spd = 235 * (G.perks.has('coffee') ? 1.15 : 1) * (p.slow > 0 ? 0.55 : 1);
+  p.t += dt; p.atkCd -= dt * (gl('caffeine') ? 1.4 : 1) * (CHAOS.hyper > 0 ? 1.25 : 1); p.dashCd -= dt; p.inv -= dt; p.hurtT -= dt; p.slow -= dt;
+  const spd = 235 * (G.perks.has('coffee') ? 1.15 : 1) * (p.slow > 0 ? 0.55 : 1) * (gl('caffeine') ? 1.3 : 1) * (CHAOS.hyper > 0 ? 1.1 : 1);
   if (p.dashT > 0) p.dashT -= dt;
   else { p.vx = damp(p.vx, I.mx * spd, 15, dt); p.vy = damp(p.vy, I.my * spd, 15, dt); }
   if (I.dashPressed && p.dashCd <= 0) {
@@ -92,7 +96,7 @@ function updatePlayer(dt) {
   let near = null, nd = 50;
   for (const k of G.pickups) {
     const d = dist(p.x, p.y, k.x, k.y);
-    if (k.heal && d < 30) { const h = HEALS[k.id] * (G.perks.has('loaves') ? 1.5 : 1); p.hp = Math.min(p.max, p.hp + h); k.dead = true; AU.play('heal'); floatText(k.x, k.y - 10, '+' + Math.round(h), [120, 60, 70]); continue; }
+    if (k.heal && d < 30) { const h = HEALS[k.id] * (G.perks.has('loaves') ? 1.5 : 1); p.hp = Math.min(p.max, p.hp + h); k.dead = true; if (k.onPick) k.onPick(); AU.play('heal'); floatText(k.x, k.y - 10, '+' + Math.round(h), [120, 60, 70]); continue; }
     if (!k.heal && d < nd && k.cool <= 0) { nd = d; near = k; }
   }
   G.nearPickup = near;
@@ -189,6 +193,7 @@ function addPickup(x, y, id) { G.pickups.push({ x, y, id, dur: HEALS[id] ? 0 : W
 function hurtPlayer(dmg, src, psy) {
   const p = G.P; if (p.inv > 0 || p.dead || G.flags.god) return;
   if (psy && G.perks.has('foil')) dmg *= 0.5;
+  chaosOnHurt();
   p.hp -= dmg; p.inv = 0.5; p.hurtT = 0.35; G.stats.dmg += dmg;
   G.cam.shake = Math.max(G.cam.shake, 7); AU.play('hurt'); p.sq.kick(-4);
   if (src) { const a = angTo(src.x, src.y, p.x, p.y); p.vx += Math.cos(a) * 260; p.vy += Math.sin(a) * 260; }
@@ -212,12 +217,19 @@ function spawnEnemy(type, x, y, extra = {}) {
   if (d.beh === 'voice') { AU.speak(tr(pick(TXT.voices)), clamp((x - G.P.x) / 500, -1, 1)); caption(tr(pick(TXT.voices)), x, y); }
   if (d.beh === 'mouth') { e.hidden = true; e.st = 'under'; e.stT = rand(0.3, 0.8); }
   if (d.beh === 'starer') e.st = 'track';
+  if (d.beh === 'mimic') e.st = 'hide';
+  e.r0 = e.r; e.gScale = 1; e.spdMul = e.spdMul || 1;
+  const stage = G.zoneI >= 0 ? ZONES[G.zoneI].stage : -1;
+  if (!e.ambient && stage >= 0 && !d.group && !d.fly && !['mouth', 'turret', 'mimic', 'starer'].includes(d.beh) && chance(0.04 + 0.035 * stage)) { e.elite = true; e.hp = e.maxHp = d.hp * 2.2; e.r0 = e.r = d.r * 1.25; }
+  if (!e.ambient && stage >= 1 && stage <= 3 && DISGUISE.includes(type) && chance(0.55)) e.disg = 'pass' + randi(0, 7);
+  if (CHAOS.glitch && CHAOS.glitch.def.spawn) CHAOS.glitch.def.spawn(e);
   G.enemies.push(e);
   return e;
 }
 
 function hitEnemy(e, dmg, ang, knock, src, stun) {
   if (e.dead || e.hidden || e.invuln) return false;
+  dmg *= dmgMul();
   if (e.boss) { bossHit(e, dmg, ang, src); return true; }
   e.hp -= dmg; e.flash = 0.13; e.sq.kick(5);
   const kb = knock * (e.def.beh === 'starer' || e.def.beh === 'turret' || e.def.beh === 'mouth' ? 0 : 1) / (e.def.scale || 1);
@@ -235,6 +247,9 @@ function hitEnemy(e, dmg, ang, knock, src, stun) {
 function killEnemy(e, src) {
   e.dead = true; G.stats.kills++; if (src === 'melee') G.stats.melee++; else G.stats.ranged++;
   if (G.director) G.director.onKill(e, src);
+  chaosOnKill(e);
+  if (e.elite) addPickup(e.x, e.y, chance(0.5) ? pick(['tea', 'sandwich']) : pick(['pan', 'pipe', 'umbrella', 'baguette', 'bottle']));
+  else if (!e.ambient && chance(0.03)) addPickup(e.x, e.y, pick(['brick', 'bottle', 'baguette', 'umbrella']));
   AU.play('splat', pan(e.x));
   decal(G.map, e.x, e.y, 14 + e.r * 0.9, e.def.col);
   for (let i = 0; i < 14; i++) { const a = rand(TAU), s = rand(60, 260); part(e.x, e.y, Math.cos(a) * s, Math.sin(a) * s, rand(0.4, 0.9), rand(4, 10), [e.def.col[0] + rand(-20, 20), e.def.col[1], e.def.col[2] + rand(-15, 15)]); }
@@ -256,6 +271,12 @@ function steerTo(e, tx, ty, spd, dt, k = 8) {
 function contact(e, mult = 1) { const p = G.P; if (e.contactCd <= 0 && dist(e.x, e.y, p.x, p.y) < e.r + p.r + 2) { hurtPlayer(e.def.dmg * mult, e, e.def.psy); e.contactCd = 0.9; return true; } return false; }
 
 const BEH = {
+  mimic(e, dt) {
+    const p = G.P, d = dist(e.x, e.y, p.x, p.y); e.stT -= dt;
+    if (e.st === 'hide') { e.vx = e.vy = 0; if (d < 150 || e.hp < e.maxHp) { e.st = 'wake'; e.stT = 0.55; AU.play('roar', pan(e.x), 0.4); AU.play('morph', pan(e.x)); } }
+    else if (e.st === 'wake') { e.vx = e.vy = 0; if (e.stT <= 0) { e.st = 'go'; e.sq.kick(10); } }
+    else { steerTo(e, p.x, p.y, e.def.spd, dt, 6); contact(e); }
+  },
   shover(e, dt) {
     const p = G.P, d = dist(e.x, e.y, p.x, p.y);
     if (e.st === 'go') {
@@ -377,9 +398,16 @@ function updateEnemies(dt) {
     if (e.dead) continue;
     e.t += dt; e.spawnT = Math.min(1, e.spawnT + dt * 1.8); e.flash -= dt; e.contactCd -= dt; e.wallHit = false;
     if (e.boss) { updateBoss(e, dt); continue; }
-    if (e.stun > 0) { e.stun -= dt; e.vx = damp(e.vx, 0, 8, dt); e.vy = damp(e.vy, 0, 8, dt); }
+    if (e.ttl !== undefined) { e.ttl -= dt; if (e.ttl <= 0) { e.dead = true; ring(e.x, e.y, e.def.col, 30); continue; } }
+    if (e.morphT > 0) {
+      e.morphT -= dt; e.vx = damp(e.vx, 0, 10, dt); e.vy = damp(e.vy, 0, 10, dt);
+      if (chance(dt * 45)) { const a = rand(TAU); part(e.x + Math.cos(a) * 34, e.y + Math.sin(a) * 34, -Math.sin(a) * 170, Math.cos(a) * 170, 0.5, rand(4, 9), [rand(360), 80, 60]); }
+      if (e.morphT <= 0) { e.morphFrom = null; e.sq.kick(12); ring(e.x, e.y, e.def.col, 80); }
+    } else if (e.disg) { steerTo(e, p.x, p.y, 55, dt, 3); if (dist(e.x, e.y, p.x, p.y) < 210 || e.hp < e.maxHp) beginMorph(e); }
+    else if (e.stun > 0) { e.stun -= dt; e.vx = damp(e.vx, 0, 8, dt); e.vy = damp(e.vy, 0, 8, dt); }
     else if (e.spawnT > 0.35) BEH[e.def.beh](e, dt);
-    e.x += (e.vx + e.kx) * dt; e.y += (e.vy + e.ky) * dt;
+    const sm = e.spdMul || 1;
+    e.x += (e.vx * sm + e.kx) * dt; e.y += (e.vy * sm + e.ky) * dt;
     e.kx = damp(e.kx, 0, 7, dt); e.ky = damp(e.ky, 0, 7, dt);
     if (!e.def.fly && !e.hidden) { if (collideCircle(G.map, e, e.r)) e.wallHit = true; }
     else { e.x = clamp(e.x, 20, G.map.w - 20); e.y = clamp(e.y, 20, G.map.h - 20); }
@@ -397,15 +425,16 @@ function updateEnemies(dt) {
       if (d2 < rr * rr && d2 > 0.01) { const d = Math.sqrt(d2), k = (rr - d) / d * 0.5; a.x -= dx * k; a.y -= dy * k; if (b.def.beh !== 'starer' && b.def.beh !== 'turret') { b.x += dx * k; b.y += dy * k; } }
     }
   }
-  void p;
   G.enemies = G.enemies.filter((e) => !e.dead);
 }
+// Прохожий сбрасывает маску: превращение в галлюцинацию
+function beginMorph(e) { e.morphFrom = e.disg; e.disg = null; e.morphT = 0.7; AU.play('morph', pan(e.x)); CHAOS.trip = Math.max(CHAOS.trip, 0.3); }
 
 // ── снаряды ──
 function proj(o) { o.t = 0; o.dead = false; o.hit = new Map(); G.projs.push(o); return o; }
 function killProj(b, byPlayer) {
   b.dead = true;
-  if (b.kind === 'word') { for (let i = 0; i < 8; i++) part(b.x, b.y, rand(-140, 140), rand(-140, 140), 0.5, rand(2, 5), [b.hue, 30, 80], 'spark'); if (byPlayer) AU.play('break', 0, 0.4); }
+  if (b.kind === 'word') { for (let i = 0; i < 8; i++) part(b.x, b.y, rand(-140, 140), rand(-140, 140), 0.5, rand(2, 5), [b.hue, 30, 80], 'spark'); if (byPlayer) { AU.play('break', 0, 0.4); chaosOnWord(); } }
   if (b.kind === 'toast') explode(b.x, b.y, b.boom, b.boomDmg, 'p');
   if (b.kind === 'nuke') explode(b.x, b.y, b.boom || 120, b.dmg, 'e');
   if (b.kind === 'thrown') {
@@ -422,10 +451,11 @@ function explode(x, y, R, dmg, from) {
   if (from === 'p') { for (const e of G.enemies) if (!e.dead && dist(x, y, e.x, e.y) < R + e.r) hitEnemy(e, dmg, angTo(x, y, e.x, e.y), 300, 'ranged'); }
   else if (dist(x, y, G.P.x, G.P.y) < R + G.P.r) hurtPlayer(dmg, { x, y });
 }
-function updateProjs(dt) {
+function updateProjs(dtP, tm = 1) {
   const p = G.P;
   for (const b of G.projs) {
     if (b.dead) continue;
+    const dt = b.from === 'p' ? dtP : dtP * tm;
     b.t += dt;
     if (b.kind === 'boomer') { // летит, тормозит, возвращается
       const back = b.t > 0.42;
@@ -465,10 +495,11 @@ function updateProjs(dt) {
   }
   G.projs = G.projs.filter((b) => !b.dead);
   // лужи краски
+  const dt = dtP;
   for (const u of G.puddles) {
     u.life -= dt;
     if (u.enemy) { if (dist(u.x, u.y, p.x, p.y) < u.r) p.slow = 0.2; }
-    else for (const e of G.enemies) if (!e.dead && !e.boss && dist(u.x, u.y, e.x, e.y) < u.r + e.r) { e.hp -= dt * 1.2; e.flash = 0.05; if (e.hp <= 0) killEnemy(e, 'ranged'); }
+    else if (!u.heal && !u.lava) for (const e of G.enemies) if (!e.dead && !e.boss && dist(u.x, u.y, e.x, e.y) < u.r + e.r) { e.hp -= dt * 1.2; e.flash = 0.05; if (e.hp <= 0) killEnemy(e, 'ranged'); }
   }
   G.puddles = G.puddles.filter((u) => u.life > 0);
 }

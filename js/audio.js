@@ -4,6 +4,7 @@ const AU = {
   ctx: null, master: null, sfx: null, mus: null, noise: null, on: false,
   voices: true, intensity: 0, zoneKey: 0, boss: false, lastVoice: 0,
   init() {
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* старый Safari */ }
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     const c = (this.ctx = new AC());
@@ -69,6 +70,7 @@ const AU = {
       case 'bark': this.tone(300, 0.12, 'sawtooth', 0.15, 0.6, p); this.hiss(0.1, 900, 2, 0.15, p, 0.5); break;
       case 'coo': this.tone(420, 0.25, 'sine', 0.08, 0.85, p); break;
       case 'choir': [261, 329, 392, 523].forEach((f) => { this.tone(f, 2.2, 'sine', 0.07, 1, 0, 0.9); this.tone(f * 1.005, 2.2, 'triangle', 0.04, 1, 0, 0.9); }); break;
+      case 'morph': this.tone(900, 0.6, 'sawtooth', 0.08 * k, 0.15, p, 0.7); this.tone(140, 0.6, 'sine', 0.2 * k, 2.2, p, 0.5); this.hiss(0.5, 3000, 3, 0.12 * k, p, 0.2, 'bandpass', 0.6); break;
       case 'click': this.tone(1200, 0.04, 'square', 0.06, 1); break;
     }
   },
@@ -88,7 +90,7 @@ const AU = {
     this.droneGain.gain.setTargetAtTime(this.musicOn ? 0.05 + I * 0.08 : 0, c.currentTime, 0.5);
     this.droneLP.frequency.setTargetAtTime(400 + I * 1600, c.currentTime, 0.4);
     if (!this.musicOn) { this.nextBeat = c.currentTime + 0.1; return; }
-    const bpm = this.boss ? 150 : 62 + I * 80;
+    const bpm = this.boss ? 150 : this.disco ? 128 : 62 + I * 80;
     const stepDur = 60 / bpm / 4;
     while (this.nextBeat < c.currentTime + 0.12) {
       const t = this.nextBeat, s = this.step % 16;
