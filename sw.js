@@ -1,5 +1,5 @@
 // Офлайн-кэш: игра запускается без сети после первого открытия. Новая версия подтягивается в фоне.
-const VER = 'tp-v2';
+const VER = 'tp-v3';
 const CORE = ['./', 'index.html', 'css/style.css', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-180.png',
   'js/util.js', 'js/paint.js', 'js/sprites.js', 'js/audio.js', 'js/text.js', 'js/world.js', 'js/levels.js', 'js/entities.js',
   'js/director.js', 'js/bosses.js', 'js/chaos.js', 'js/render.js', 'js/input.js', 'js/ui.js', 'js/game.js'];
